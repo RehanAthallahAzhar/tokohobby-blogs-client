@@ -44,6 +44,11 @@
                 >
                 <!-- Media Section -->
                 <div class="relative w-full pt-[56.25%] bg-gray-100 dark:bg-gray-800 overflow-hidden">
+                    <div v-if="blog.categoryName" class="absolute top-3 left-3 z-10">
+                        <span class="px-2 py-1 bg-white/90 backdrop-blur-sm dark:bg-dark-card/90 text-primary text-[10px] font-bold rounded-lg shadow-sm uppercase tracking-wider">
+                            {{ blog.categoryName }}
+                        </span>
+                    </div>
                     <img v-if="getMediaUrl(blog)" :src="getMediaUrl(blog)" loading="lazy" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Cover">
                     <div v-else class="absolute inset-0 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform duration-500" :style="{ background: getRandomGradient(blog.id) }">
                         ☕

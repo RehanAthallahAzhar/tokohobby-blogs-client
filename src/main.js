@@ -12,6 +12,7 @@ const router = createRouter({
     routes: [
         { path: '/blogs', component: BlogList },
         { path: '/blogs/:slug', component: BlogDetail },
+        { path: '/blogs/preview/:token', component: BlogDetail },
         { path: '/admin/blogs', component: AdminPanel },
         { path: '/', redirect: '/blogs' }
     ]
