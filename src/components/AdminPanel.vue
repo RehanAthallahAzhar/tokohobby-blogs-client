@@ -159,7 +159,7 @@ const categories = ref([])
 const tags = ref([])
 const activeTab = ref('DRAFT')
 
-const API_URL = 'http://localhost:8084'
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8084'
 
 const drafts = computed(() => blogs.value.filter(b => b.status === 'DRAFT'))
 const publishedBlogs = computed(() => blogs.value.filter(b => b.status === 'PUBLISHED'))

@@ -139,7 +139,7 @@ const keywordInput = ref('') // Input value
 const loading = ref(false)
 const showLoader = ref(true) // Start with loader
 
-const API_URL = 'http://localhost:8084'
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8084'
 
 // Custom Debounce function since we might not have lodash installed
 const debounce = (fn, delay) => {

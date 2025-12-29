@@ -137,7 +137,7 @@ const comments = ref([])
 const votedComments = ref(new Map())
 const newComment = ref('')
 const isSubmitting = ref(false)
-const API_URL = 'http://localhost:8084'
+const API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8084'
 
 // Reply state
 const replyingTo = ref(null)
