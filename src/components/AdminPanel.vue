@@ -24,22 +24,44 @@
             <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
                 <span>✍️</span> {{ form.id ? 'Edit Blog' : 'Create New Blog' }}
             </h3>
-            <form @submit.prevent="createBlog" class="space-y-5">
+            <form @submit.prevent="saveBlog" class="space-y-5">
                 <div>
                     <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Title</label>
                     <input v-model="form.title" placeholder="Enter a catchy title..." required
                            class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none">
                 </div>
-                
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Status</label>
-                    <select v-model="form.status"
-                           class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none">
-                        <option value="DRAFT">Draft (Private)</option>
-                        <option value="PUBLISHED">Published (Public)</option>
-                    </select>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                        <select v-model="form.categoryId"
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none">
+                            <option :value="null">No Category</option>
+                            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Status</label>
+                        <select v-model="form.status"
+                               class="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none">
+                            <option value="DRAFT">Draft (Private)</option>
+                            <option value="PUBLISHED">Published (Public)</option>
+                        </select>
+                    </div>
                 </div>
 
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Tags</label>
+                    <div class="flex flex-wrap gap-2 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                        <label v-for="tag in tags" :key="tag.id" 
+                               class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                            <input type="checkbox" :value="tag.id" v-model="form.tagIds" class="rounded border-gray-300 text-primary focus:ring-primary">
+                            <span class="text-xs font-medium">{{ tag.name }}</span>
+                        </label>
+                        <div v-if="tags.length === 0" class="text-xs text-gray-400 py-1">No tags available.</div>
+                    </div>
+                </div>
+                
                 <div>
                     <label class="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">YouTube Link (Optional)</label>
                     <input v-model="form.youtubeLink" placeholder="e.g. https://youtu.be/..." type="url"
@@ -89,9 +111,15 @@
                      @click="editBlog(blog)">
                     
                     <div class="flex justify-between items-start">
-                        <div>
+                        <div class="flex-1">
                             <h4 class="font-bold text-lg mb-1 group-hover:text-primary transition-colors line-clamp-1">{{ blog.title }}</h4>
-                            <span class="text-xs text-gray-400">Last updated: {{ new Date(blog.updatedAt || Date.now()).toLocaleDateString() }}</span>
+                            <div class="flex items-center gap-3 mb-2">
+                                <span v-if="blog.categoryName" class="text-[10px] font-bold px-2 py-0.5 bg-primary/10 text-primary rounded-md uppercase tracking-wider">{{ blog.categoryName }}</span>
+                                <span class="text-xs text-gray-400">Update: {{ new Date(blog.updatedAt || Date.now()).toLocaleDateString() }}</span>
+                            </div>
+                            <div class="flex flex-wrap gap-1">
+                                <span v-for="tagName in blog.tags" :key="tagName" class="text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded italic">#{{ tagName }}</span>
+                            </div>
                         </div>
                         <span v-if="blog.status === 'PUBLISHED'" class="text-[10px] font-bold px-2 py-1 bg-green-100 text-green-600 rounded-full">LIVE</span>
                         <span v-else class="text-[10px] font-bold px-2 py-1 bg-yellow-100 text-yellow-600 rounded-full">DRAFT</span>
@@ -121,10 +149,14 @@ const form = ref({
     content: '',
     status: 'DRAFT',
     youtubeLink: '',
-    imagePath: ''
+    imagePath: '',
+    categoryId: null,
+    tagIds: []
 })
 const loading = ref(false)
 const blogs = ref([])
+const categories = ref([])
+const tags = ref([])
 const activeTab = ref('DRAFT')
 
 const API_URL = 'http://localhost:8084'
@@ -135,21 +167,39 @@ const currentList = computed(() => activeTab.value === 'DRAFT' ? drafts.value : 
 
 const fetchBlogs = async () => {
     try {
-        const res = await axios.get(`${API_URL}/admin/blogs`)
+        const res = await axios.get(`${API_URL}/blogs/manage`)
         blogs.value = res.data.content
     } catch (err) {
         console.log("Could not fetch blogs")
     }
 }
 
-const createBlog = async () => {
+const fetchCategories = async () => {
+    try {
+        const res = await axios.get(`${API_URL}/admin/categories`)
+        categories.value = res.data
+    } catch (err) {
+        console.log("Could not fetch categories")
+    }
+}
+
+const fetchTags = async () => {
+    try {
+        const res = await axios.get(`${API_URL}/admin/tags`)
+        tags.value = res.data
+    } catch (err) {
+        console.log("Could not fetch tags")
+    }
+}
+
+const saveBlog = async () => {
     loading.value = true
     try {
         if (form.value.id) {
-             await axios.put(`${API_URL}/admin/blogs/${form.value.id}`, form.value)
+             await axios.put(`${API_URL}/blogs/${form.value.id}`, form.value)
              alert('✨ Blog Updated!')
         } else {
-             await axios.post(`${API_URL}/admin/blogs`, form.value)
+             await axios.post(`${API_URL}/blogs`, form.value)
              alert('✨ Blog Created!')
         }
         resetForm()
@@ -164,7 +214,7 @@ const createBlog = async () => {
 const deleteBlog = async (id) => {
     if(!confirm('Are you sure you want to delete this blog?')) return
     try {
-        await axios.delete(`${API_URL}/admin/blogs/${id}`)
+        await axios.delete(`${API_URL}/blogs/${id}`)
         fetchBlogs()
     } catch (err) {
         alert('Error deleting: ' + err.message)
@@ -172,12 +222,24 @@ const deleteBlog = async (id) => {
 }
 
 const editBlog = (blog) => {
-    form.value = { ...blog }
+    form.value = { 
+        ...blog,
+        // Match the categoryId and tagIds if they exist in the blog object
+        // The blog object from list might not have categoryId/tagIds directly, 
+        // but it has categoryName and tags (list of strings).
+        // For a full edit, we'd need the IDs.
+        // Assuming the blog object from /manage contains categoryId and tagIds
+        categoryId: blog.categoryId || null,
+        tagIds: blog.tagIds || []
+    }
     window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const resetForm = () => {
-    form.value = { id: null, title: '', content: '', status: 'DRAFT', youtubeLink: '', imagePath: '' }
+    form.value = { 
+        id: null, title: '', content: '', status: 'DRAFT', 
+        youtubeLink: '', imagePath: '', categoryId: null, tagIds: [] 
+    }
 }
 
 onMounted(() => {
@@ -185,9 +247,11 @@ onMounted(() => {
         activeTab.value = 'PUBLISHED'
     }
     fetchBlogs()
+    fetchCategories()
+    fetchTags()
 })
 
-// Watch query param changes (if user clicks navbar link while on page)
+// Watch query param changes
 watch(() => route.query.view, (newView) => {
     if (newView === 'published') {
         activeTab.value = 'PUBLISHED'

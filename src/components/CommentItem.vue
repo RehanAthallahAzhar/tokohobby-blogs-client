@@ -7,7 +7,13 @@
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between mb-1">
           <div class="flex items-center gap-2">
-            <span class="font-bold text-gray-900 dark:text-white truncate">{{ comment.userId }}</span>
+            <div class="flex items-center gap-1.5 font-bold text-gray-900 dark:text-white truncate">
+                <span>{{ comment.userId }}</span>
+                <template v-if="comment.replyToUserId">
+                    <span class="text-gray-400 font-normal text-[10px]">▶</span>
+                    <span>{{ comment.replyToUserId }}</span>
+                </template>
+            </div>
             <span class="text-xs text-gray-400">• {{ getTimeAgo(comment.createdAt) }}</span>
           </div>
           <button 
@@ -18,7 +24,9 @@
             Delete
           </button>
         </div>
-        <p class="text-gray-700 dark:text-gray-300 break-words">{{ comment.content }}</p>
+        <p class="text-gray-700 dark:text-gray-300 break-words">
+          {{ comment.content }}
+        </p>
         <div class="flex items-center gap-4 mt-3 text-sm text-gray-500">
             <button 
               @click="$emit('like', comment.id)"

@@ -12,7 +12,7 @@
 
     <div class="animate-fade-in">
         <!-- Header & Search -->
-        <div v-if="!loading && !showLoader" class="flex flex-col md:flex-row items-center gap-6 mb-12 mt-4 px-4">
+        <div v-if="!loading && !showLoader" class="flex flex-col md:flex-row items-center gap-6 mb-8 mt-4 px-4">
             <h2 class="text-3xl font-bold text-gray-800 dark:text-white whitespace-nowrap">Latest Posts</h2>
             
             <div class="relative w-full max-w-md group">
@@ -24,6 +24,24 @@
                 >
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xl group-focus-within:text-primary transition-colors">🔍</span>
             </div>
+        </div>
+
+        <!-- Category Pills -->
+        <div v-if="!loading && !showLoader && categories.length > 0" class="flex flex-wrap gap-2.5 mb-12 px-4 animate-fade-in delay-200">
+            <button 
+                @click="filterByCategory(null)"
+                :class="['px-5 py-2 rounded-full text-xs font-bold transition-all border uppercase tracking-wider', !selectedCategory ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white dark:bg-dark-card border-gray-100 dark:border-gray-800 text-gray-500 hover:border-primary/50']"
+            >
+                All Feed
+            </button>
+            <button 
+                v-for="cat in categories" 
+                :key="cat.id" 
+                @click="filterByCategory(cat.id)"
+                :class="['px-5 py-2 rounded-full text-xs font-bold transition-all border uppercase tracking-wider', selectedCategory === cat.id ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white dark:bg-dark-card border-gray-100 dark:border-gray-800 text-gray-500 hover:border-primary/50']"
+            >
+                {{ cat.name }}
+            </button>
         </div>
     
         <!-- Custom Loading Screen (Fixed Overlay) -->
@@ -61,9 +79,16 @@
 
                 <!-- Content Section -->
                 <div class="p-5 flex flex-col flex-grow">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-3 leading-snug group-hover:text-primary transition-colors">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 leading-snug group-hover:text-primary transition-colors">
                         {{ blog.title }}
                     </h2>
+
+                    <!-- Tags -->
+                    <div v-if="blog.tags && blog.tags.length > 0" class="flex flex-wrap gap-1.5 mb-4">
+                        <span v-for="tag in blog.tags" :key="tag" class="text-[10px] text-gray-400 bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded-md border border-gray-100 dark:border-gray-800 italic">
+                            #{{ tag }}
+                        </span>
+                    </div>
                     
                     <div class="mt-auto flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-800">
                         <div class="flex items-center gap-2">
@@ -105,6 +130,8 @@ import { ref, onMounted } from 'vue'
 import axios from 'axios'
 
 const blogs = ref([])
+const categories = ref([])
+const selectedCategory = ref(null)
 const page = ref(0)
 const lastPage = ref(false)
 const keyword = ref('') // Actual keyword used for fetch
@@ -126,7 +153,11 @@ const debounce = (fn, delay) => {
 const fetchBlogs = async () => {
   loading.value = true
   try {
-    const res = await axios.get(`${API_URL}/blogs?page=${page.value}&size=12&keyword=${keyword.value}`)
+    let url = `${API_URL}/blogs?page=${page.value}&size=12&keyword=${keyword.value}`
+    if (selectedCategory.value) {
+        url += `&categoryId=${selectedCategory.value}`
+    }
+    const res = await axios.get(url)
     blogs.value = res.data.content
     lastPage.value = res.data.last
   } catch (err) {
@@ -134,6 +165,21 @@ const fetchBlogs = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const fetchCategories = async () => {
+    try {
+        const res = await axios.get(`${API_URL}/categories`)
+        categories.value = res.data
+    } catch (err) {
+        console.error("Failed to fetch categories")
+    }
+}
+
+const filterByCategory = (id) => {
+    selectedCategory.value = id
+    page.value = 0
+    fetchBlogs()
 }
 
 // Debounced search handler
@@ -190,6 +236,7 @@ onMounted(() => {
     setTimeout(() => {
         showLoader.value = false
         fetchBlogs()
+        fetchCategories()
     }, 1000)
 })
 </script>
